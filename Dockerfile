@@ -9,10 +9,15 @@ WORKDIR /app
 
 # ---- Copy project files ----
 COPY pyproject.toml poetry.lock* ./
-RUN pip install poetry && poetry install --no-root --no-interaction --no-ansi
+RUN pip install --no-cache-dir poetry \
+    && poetry config virtualenvs.create false \
+    && poetry install --no-root --no-interaction --no-ansi
 
+# ---- Copy source code ----
 COPY app ./app
 
-# ---- Expose port & run ----
+# ---- Expose port ----
 EXPOSE 8000
-CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# ---- Run server ----
+CMD poetry run uvicorn app.main:app --host ${UVICORN_HOST:-0.0.0.0} --port ${UVICORN_PORT:-8000}
