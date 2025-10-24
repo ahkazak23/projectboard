@@ -1,37 +1,48 @@
 from typing import Annotated
-
-from fastapi import Depends, status, HTTPException
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, ExpiredSignatureError, JWTError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.db.models.user import User
 from app.db.session import get_db
+from app.db.models.user import User
 
-bearer_scheme = HTTPBearer(auto_error=False)
+bearer = HTTPBearer(auto_error=False)
 JWT_SECRET = settings.JWT_SECRET
 JWT_ALG = settings.JWT_ALG
 
+def _unauthorized() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
-def get_current_user(creds: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
-                     db: Annotated[Session, Depends(get_db)]) -> User:
+def get_current_user(
+    creds: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
     if creds is None or creds.scheme.lower() != "bearer":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise _unauthorized()
 
     token = creds.credentials
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
-        sub = payload.get("sub")
-        if sub is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token: no subject")
-    except ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token: Expired token")
-    except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    except (ExpiredSignatureError, JWTError):
+        raise _unauthorized()
 
-    user = db.get(User, int(sub))
+    sub = payload.get("sub")
+    if sub is None:
+        raise _unauthorized()
+
+    try:
+        user_id = int(sub)
+    except (TypeError, ValueError):
+        raise _unauthorized()
+
+    user = db.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        raise _unauthorized()
 
     return user
