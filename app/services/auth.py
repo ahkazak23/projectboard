@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import UserExistsError, AuthError
 from app.core.security import hash_password, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
-from app.models import User
+from app.db.models import User
 
 def _normalize_login(login: str) -> str:
     return login.strip().lower()
