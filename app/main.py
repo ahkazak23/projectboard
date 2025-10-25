@@ -1,8 +1,7 @@
 from fastapi import FastAPI
-
 from app.api.routers import register_routers
 from app.db.session import engine, Base
-from app.db.models import user
+import app.db.models
 
 app = FastAPI()
 
