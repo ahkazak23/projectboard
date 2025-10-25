@@ -1,16 +1,6 @@
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
-
-class UserOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: int
-    login: str
-
-class TokenOut(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    expires_in: int  # seconds
-
+# Requests
 class LoginIn(BaseModel):
     login: str
     password: str
@@ -20,9 +10,19 @@ class RegisterIn(BaseModel):
     password: str
     repeat_password: str
 
-    @field_validator("repeat_password")
-    def passwords_match(cls, v, info):
-        password = info.data.get("password")
-        if v != password:
+    @model_validator(mode="after")
+    def passwords_match(self):
+        if self.password != self.repeat_password:
             raise ValueError("Passwords do not match")
-        return v
+        return self
+
+# Response
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    login: str
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int  # seconds
