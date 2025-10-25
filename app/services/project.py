@@ -1,4 +1,4 @@
-from sqlalchemy import select, exists, func, literal
+from sqlalchemy import select, exists
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.db.models import Project, ProjectAccess, ProjectRole, User
@@ -67,11 +67,9 @@ def invite_user(db: Session, owner_user: User, project_id: int, target_login: st
     proj = _get_project_or_404(db, project_id)
     _ensure_owner(owner_user.id, proj)
 
-    target = (
-        db.query(User)
-        .filter(func.lower(User.login) == target_login.lower())
-        .one_or_none()
-    )
+    norm_login = target_login.strip().lower()
+    stmt = select(User).where(User.login == norm_login)
+    target = db.execute(stmt).scalar_one_or_none()
     if target is None:
         raise ValueError("TARGET_NOT_FOUND")
 
@@ -118,7 +116,8 @@ def _is_member(db: Session, user_id: int, project_id: int) -> bool:
             (ProjectAccess.project_id == project_id)
         )
     )
-    return db.scalar(stmt) is True
+    result = db.scalar(stmt)
+    return bool(result)
 
 
 def _ensure_member(db: Session, user_id: int, project_id: int) -> None:
