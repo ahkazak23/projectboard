@@ -36,6 +36,11 @@ jobs:
 
       - name: Run tests (pytest)
         env:
-          TEST_DATABASE_URL: sqlite:///./test.db
-        run: |
-          pytest -q
+          DATABASE_URL: "sqlite:///./test.db"
+          POSTGRES_USER: "dummy"
+          POSTGRES_PASSWORD: "dummy"
+          POSTGRES_DB: "dummy"
+          DB_HOST: "localhost"
+          DB_PORT: "5432"
+          JWT_SECRET: "test-secret"
+        run: pytest -q
