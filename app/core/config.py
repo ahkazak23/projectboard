@@ -1,8 +1,4 @@
-from pydantic_settings import BaseSettings
-from dotenv import load_dotenv
-
-# Load .env file
-load_dotenv()
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # Database
@@ -22,7 +18,10 @@ class Settings(BaseSettings):
     UVICORN_HOST: str = "0.0.0.0"
     UVICORN_PORT: int = 8000
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 settings = Settings()
