@@ -1,6 +1,7 @@
 import pytest
-from app.services import project as svc
+
 from app.schemas import ProjectIn, ProjectUpdate
+from app.services import project as svc
 
 
 def test_non_member_get_forbidden(db_session, user_factory):

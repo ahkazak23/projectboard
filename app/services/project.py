@@ -1,15 +1,14 @@
-from sqlalchemy import select, exists
+from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
 from app.db.models import Project, ProjectAccess, ProjectRole, User
 from app.schemas import ProjectIn, ProjectUpdate
 
 
 def create_project(db: Session, current_user: User, data: ProjectIn) -> Project:
     proj = Project(
-        name=data.name,
-        description=data.description,
-        owner_id=current_user.id
+        name=data.name, description=data.description, owner_id=current_user.id
     )
     db.add(proj)
     db.flush()
@@ -42,7 +41,9 @@ def get_project(db: Session, current_user: User, project_id: int) -> Project:
     return proj
 
 
-def update_project(db: Session, current_user: User, project_id: int, data: ProjectUpdate) -> Project:
+def update_project(
+    db: Session, current_user: User, project_id: int, data: ProjectUpdate
+) -> Project:
     proj = _get_project_or_404(db, project_id)
     _ensure_member(db, current_user.id, project_id)
 
@@ -63,7 +64,9 @@ def delete_project(db: Session, current_user: User, project_id: int) -> None:
     return None
 
 
-def invite_user(db: Session, owner_user: User, project_id: int, target_login: str) -> None:
+def invite_user(
+    db: Session, owner_user: User, project_id: int, target_login: str
+) -> None:
     proj = _get_project_or_404(db, project_id)
     _ensure_owner(owner_user.id, proj)
 
@@ -91,7 +94,6 @@ def invite_user(db: Session, owner_user: User, project_id: int, target_login: st
     return None
 
 
-
 # Private helpers
 def _get_project_or_404(db: Session, project_id: int) -> Project:
     project = db.get(Project, project_id)
@@ -112,8 +114,8 @@ def _ensure_owner(user_id: int, project: Project) -> None:
 def _is_member(db: Session, user_id: int, project_id: int) -> bool:
     stmt = select(
         exists().where(
-            (ProjectAccess.user_id == user_id) &
-            (ProjectAccess.project_id == project_id)
+            (ProjectAccess.user_id == user_id)
+            & (ProjectAccess.project_id == project_id)
         )
     )
     result = db.scalar(stmt)

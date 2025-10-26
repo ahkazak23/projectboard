@@ -1,9 +1,11 @@
 from pydantic import BaseModel, ConfigDict, model_validator
 
+
 # Requests
 class LoginIn(BaseModel):
     login: str
     password: str
+
 
 class RegisterIn(BaseModel):
     login: str
@@ -16,11 +18,13 @@ class RegisterIn(BaseModel):
             raise ValueError("Passwords do not match")
         return self
 
+
 # Response
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     login: str
+
 
 class TokenOut(BaseModel):
     access_token: str
