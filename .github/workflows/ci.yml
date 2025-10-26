@@ -28,11 +28,17 @@ jobs:
           poetry config virtualenvs.create false
           poetry install --no-interaction --no-root
 
-      - name: Lint (ruff / black / isort)
+      - name: Lint + Format (ruff / black / isort)
         run: |
-          ruff check .
+          ruff check . --fix
+          black .
+          isort .
+
+      - name: Verify formatting
+        run: |
           black --check .
           isort --check-only .
+
 
       - name: Run tests (pytest)
         env:

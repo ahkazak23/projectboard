@@ -12,6 +12,8 @@ from app.db.session import Base, engine
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     yield
+
+
 app = FastAPI(lifespan=lifespan)
 
 
