@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-import app.db.models as _
+import app.db.models
 from app.api.routers import register_routers
 from app.core.errors import register_exception_handlers
 from app.db.session import Base, engine
