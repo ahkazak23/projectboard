@@ -1,10 +1,10 @@
-from fastapi import Request
+from fastapi import Request, status
 from fastapi.responses import JSONResponse
-from starlette import status
 
 
 class UserExistsError(Exception):
     pass
+
 
 class AuthError(Exception):
     pass
@@ -15,6 +15,7 @@ def permission_error_handler(request: Request, exc: PermissionError):
         status_code=status.HTTP_403_FORBIDDEN,
         content={"detail": "Forbidden"},
     )
+
 
 def value_error_handler(request: Request, exc: ValueError):
     msg = str(exc)
@@ -38,11 +39,13 @@ def value_error_handler(request: Request, exc: ValueError):
         content={"detail": msg or "Bad Request"},
     )
 
+
 def user_exists_error_handler(request: Request, exc: UserExistsError):
     return JSONResponse(
         status_code=status.HTTP_409_CONFLICT,
         content={"detail": "User already exists"},
     )
+
 
 def auth_error_handler(request: Request, exc: AuthError):
     return JSONResponse(

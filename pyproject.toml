@@ -1,7 +1,7 @@
 [project]
 name = "projectboard"
 version = "0.1.0"
-description = "Auth MVP"
+description = "s2"
 authors = [
     {name = "Alihan Kazak",email = "ahkazak23@gmail.com"}
 ]
@@ -13,10 +13,8 @@ dependencies = [
     "uvicorn (>=0.37.0,<0.38.0)",
     "sqlalchemy (>=2.0.43,<3.0.0)",
     "psycopg[binary] (>=3.2.10,<4.0.0)",
-    "python-dotenv (>=1.1.1,<2.0.0)",
     "passlib[bcrypt] (>=1.7.4,<2.0.0)",
     "python-jose[cryptography] (>=3.5.0,<4.0.0)",
-    "bcrypt (<4.1)",
     "pydantic-settings (>=2.11.0,<3.0.0)"
 ]
 
@@ -24,3 +22,22 @@ dependencies = [
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest (>=8.4.2,<9.0.0)",
+    "pytest-asyncio (>=1.2.0,<2.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "ruff (>=0.14.2,<0.15.0)",
+    "black (>=25.9.0,<26.0.0)",
+    "isort (>=7.0.0,<8.0.0)",
+    "deptry (>=0.23.1,<0.24.0)"
+]
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["app/tests"]
+addopts = "-q -ra"
+markers = [
+  "api: API-level test suite",
+  "auth: Authentication-related tests",
+]
