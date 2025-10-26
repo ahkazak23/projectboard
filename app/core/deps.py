@@ -1,16 +1,18 @@
 from typing import Annotated
+
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, ExpiredSignatureError, JWTError
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import ExpiredSignatureError, JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.db.session import get_db
 from app.db.models.user import User
+from app.db.session import get_db
 
 bearer = HTTPBearer(auto_error=False)
 JWT_SECRET = settings.JWT_SECRET
 JWT_ALG = settings.JWT_ALG
+
 
 def _unauthorized() -> HTTPException:
     return HTTPException(
@@ -18,6 +20,7 @@ def _unauthorized() -> HTTPException:
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
 
 def get_current_user(
     creds: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],

@@ -1,8 +1,10 @@
 from datetime import datetime
-from typing import Optional, Annotated
+from typing import Annotated, Optional
+
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
 Name120 = Annotated[str, StringConstraints(min_length=1, max_length=120)]
+
 
 # Requests
 class ProjectIn(BaseModel):

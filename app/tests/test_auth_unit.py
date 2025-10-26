@@ -1,7 +1,8 @@
 import pytest
+
 from app.core.errors import AuthError, UserExistsError
-from app.services import auth as auth_svc
 from app.db.models import User
+from app.services import auth as auth_svc
 
 
 def test_register_creates_user_and_normalizes_login(db_session):
