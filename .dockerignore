@@ -1,0 +1,38 @@
+# --- Virtualenv & local env ---
+.venv/
+env/
+venv/
+.env
+.awsenv
+env.example
+
+# --- Python cache & build ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+dist/
+build/
+*.log
+
+# --- Git / IDE / OS files ---
+.git/
+.gitignore
+.github/
+.idea/
+.vscode/
+.DS_Store
+
+# --- Tests & local data ---
+app/tests/
+test.db
+.pytest_cache/
+.coverage
+
+# --- Other dev files ---
+*.bak
+*.swp
+
+# --- Optional: Docker-specific ---
+docker-compose.yml

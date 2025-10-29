@@ -1,6 +1,8 @@
-from sqlalchemy import (Column, DateTime, ForeignKey, Integer, String, Text,
-                        func)
-from sqlalchemy.orm import relationship
+from __future__ import annotations
+from datetime import datetime
+
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
 
@@ -8,19 +10,31 @@ from app.db.session import Base
 class Project(Base):
     __tablename__ = "projects"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(120), nullable=False)
-    description = Column(Text, nullable=True)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), onupdate=func.now(), server_default=func.now()
     )
 
-    # relationship
-    owner = relationship("User", back_populates="owned_projects", lazy="joined")
-    access_list = relationship(
-        "ProjectAccess",
+    # relationships
+    owner: Mapped["User"] = relationship(
+        back_populates="owned_projects",
+        lazy="joined",
+    )
+    access_list: Mapped[list["ProjectAccess"]] = relationship(
         back_populates="project",
         cascade="all, delete-orphan",
     )
+    documents: Mapped[list["Document"]] = relationship(
+        "Document",
+        back_populates="project",
+        cascade="all, delete-orphan",
+    )
+
+    def __repr__(self):
+        return f"<Project id={self.id} name={self.name!r}>"
