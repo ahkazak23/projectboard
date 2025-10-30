@@ -20,9 +20,7 @@ def verify_password(password: str, password_hash: str) -> bool:
     return _pwd_ctx.verify(password, password_hash)
 
 
-def create_access_token(
-    subject: str, ttl_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES
-) -> str:
+def create_access_token(subject: str, ttl_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES) -> str:
     now = datetime.now(timezone.utc)
     exp = now + timedelta(minutes=ttl_minutes)
     payload: Dict[str, Any] = {"sub": subject, "iat": int(now.timestamp()), "exp": exp}

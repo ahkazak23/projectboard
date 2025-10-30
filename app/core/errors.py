@@ -22,28 +22,52 @@ def value_error_handler(request: Request, exc: ValueError):
 
     # projects
     if msg == "NOT_FOUND":
-        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"detail": "Project not found"})
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND, content={"detail": "Project not found"}
+        )
     if msg == "TARGET_NOT_FOUND":
-        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"detail": "User not found"})
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND, content={"detail": "User not found"}
+        )
     if msg == "ALREADY_MEMBER":
-        return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": "Already a member"})
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT, content={"detail": "Already a member"}
+        )
 
     # documents
     if msg == "DOC_UNSUPPORTED_TYPE":
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "Unsupported file type"})
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "Unsupported file type"}
+        )
     if msg == "DOC_EMPTY":
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "Empty file"})
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "Empty file"}
+        )
     if msg == "DOC_TOO_LARGE":
-        return JSONResponse(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, content={"detail": "File too large"})
+        return JSONResponse(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            content={"detail": "File too large"},
+        )
     if msg == "DOC_NO_ACCESS":
-        return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": "No access to this project"})
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN, content={"detail": "No access to this project"}
+        )
     if msg == "DOC_PROJECT_LIMIT":
-        return JSONResponse(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, content={"detail": "Project size limit exceeded"})
+        return JSONResponse(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            content={"detail": "Project size limit exceeded"},
+        )
+    if msg == "DOC_NOT_FOUND":
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"detail": "Document not found"})
     if msg.startswith("DOC_S3_ERROR"):
-        return JSONResponse(status_code=status.HTTP_502_BAD_GATEWAY, content={"detail": "Upstream S3 error"})
+        return JSONResponse(
+            status_code=status.HTTP_502_BAD_GATEWAY, content={"detail": "Upstream S3 error"}
+        )
 
     # fallback
-    return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": msg or "Bad Request"})
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST, content={"detail": msg or "Bad Request"}
+    )
 
 
 def user_exists_error_handler(request: Request, exc: UserExistsError):

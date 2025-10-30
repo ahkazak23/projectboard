@@ -23,6 +23,7 @@ class ProjectOut(BaseModel):
     name: str
     description: Optional[str]
     owner_id: int
+    total_size_bytes: int
     created_at: datetime
     updated_at: datetime
 

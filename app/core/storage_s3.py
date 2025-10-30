@@ -1,7 +1,10 @@
 from __future__ import annotations
+
 import logging
+
 import boto3
-from botocore.exceptions import ClientError, BotoCoreError
+from botocore.exceptions import BotoCoreError, ClientError
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -23,10 +26,7 @@ def ping_bucket() -> bool:
         err = resp.get("Error", {})
         err_code = err.get("Code")
         err_msg = err.get("Message")
-        logger.warning(
-            "S3 ping failed (status=%s, code=%s): %s",
-            http_status, err_code, err_msg
-        )
+        logger.warning("S3 ping failed (status=%s, code=%s): %s", http_status, err_code, err_msg)
         return False
     except BotoCoreError as e:
         logger.exception("S3 ping failed (boto core): %s", e)
@@ -47,21 +47,11 @@ def put_text(key: str, body: str) -> None:
         raise
 
 
-def delete_object(key: str) -> None:
-    s3 = get_s3_client()
-    try:
-        s3.delete_object(Bucket=settings.S3_BUCKET, Key=key)
-    except (ClientError, BotoCoreError) as e:
-        logger.exception("S3 delete_object failed (key=%s): %s", key, e)
-        raise
-
-
 def put_file(key: str, fileobj, content_type: str, metadata: dict | None = None) -> str | None:
     s3 = get_s3_client()
     extra = {"ContentType": content_type}
     if metadata:
         extra["Metadata"] = metadata
-
     try:
         s3.upload_fileobj(
             Fileobj=fileobj,
@@ -72,4 +62,17 @@ def put_file(key: str, fileobj, content_type: str, metadata: dict | None = None)
         return None
     except (ClientError, BotoCoreError) as e:
         logger.exception("S3 put_file failed (key=%s): %s", key, e)
+        raise ValueError("DOC_S3_ERROR")
+
+
+def delete_file(key: str) -> None:
+    s3 = get_s3_client()
+    try:
+        s3.delete_object(Bucket=settings.S3_BUCKET, Key=key)
+    except ClientError as e:
+        code = (e.response or {}).get("Error", {}).get("Code")
+        if code in {"NoSuchKey", "NotFound"}:
+            return
+        raise ValueError("DOC_S3_ERROR")
+    except BotoCoreError:
         raise ValueError("DOC_S3_ERROR")

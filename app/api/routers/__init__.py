@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from . import auth, project, document
+from . import auth, document, project
 
 
 def register_routers(app: FastAPI):

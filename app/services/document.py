@@ -2,18 +2,17 @@ from __future__ import annotations
 
 import io
 import re
-from uuid import uuid4
 from typing import BinaryIO
+from uuid import uuid4
 
-from fastapi import  UploadFile
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.storage_s3 import put_file
-from app.db.models import User
+from app.core.storage_s3 import delete_file, put_file
+from app.db.models.document import Document
 from app.db.models.project import Project
 from app.db.models.project_access import ProjectAccess
-from app.db.models.document import Document
 
 # Config
 ALLOWED_MIME = {
@@ -26,15 +25,16 @@ ALLOWED_MIME = {
 
 MAX_UPLOAD_BYTES = settings.PROJECT_SIZE_LIMIT_BYTES
 
+
 def upload_document(
     db: Session,
     *,
-    user: User ,
+    user_id: int,
     project_id: int,
     file: UploadFile,
 ) -> Document:
 
-    proj = _ensure_access(db, user.id, project_id)
+    proj = _ensure_access(db, user_id, project_id)
 
     ctype = (file.content_type or "").lower()
     if ctype not in ALLOWED_MIME:
@@ -62,7 +62,7 @@ def upload_document(
         filename=file.filename or safe,
         s3_key=key,
         size_bytes=size,
-        uploaded_by=user.id,
+        uploaded_by=user_id,
     )
     db.add(doc)
 
@@ -73,6 +73,28 @@ def upload_document(
     db.commit()
     db.refresh(doc)
     return doc
+
+
+def delete_document(
+    db: Session,
+    *,
+    user_id: int,
+    project_id: int,
+    doc_id: int,
+) -> None:
+    doc = _get_doc_or_404(db, project_id, doc_id)
+    proj = _get_project_or_404(db, project_id)
+    _ensure_owner(user_id, proj)
+
+    # S3 delete
+    delete_file(doc.s3_key)
+
+    # total_size_bytes decrement (never negative)
+    _decrement_total_size(proj, doc.size_bytes)
+
+    # DB delete
+    db.delete(doc)
+    db.commit()
 
 
 # Private Helpers
@@ -110,3 +132,28 @@ def _read_limited(upload: UploadFile, max_bytes: int) -> bytes:
     if len(data) > max_bytes:
         raise ValueError("DOC_TOO_LARGE")
     return data
+
+
+def _get_project_or_404(db: Session, project_id: int) -> Project:
+    proj = db.get(Project, project_id)
+    if not proj:
+        raise ValueError("NOT_FOUND")
+    return proj
+
+
+def _ensure_owner(user_id: int, proj: Project) -> None:
+    if proj.owner_id != user_id:
+        raise ValueError("DOC_NO_ACCESS")
+
+
+def _get_doc_or_404(db: Session, project_id: int, doc_id: int) -> Document:
+    doc = db.get(Document, doc_id)
+    if not doc or doc.project_id != project_id:
+        raise ValueError("DOC_NOT_FOUND")
+    return doc
+
+
+def _decrement_total_size(proj: Project, delta: int | None) -> None:
+    if hasattr(Project, "total_size_bytes") and delta:
+        cur = getattr(proj, "total_size_bytes", 0) or 0
+        proj.total_size_bytes = max(cur - max(delta, 0), 0)

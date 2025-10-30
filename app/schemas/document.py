@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, StringConstraints
 Filename255 = Annotated[str, StringConstraints(min_length=1, max_length=255)]
 S3Key512 = Annotated[str, StringConstraints(min_length=1, max_length=512)]
 
+
 #  Requests
 class DocumentIn(BaseModel):
     filename: Filename255

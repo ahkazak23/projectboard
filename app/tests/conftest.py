@@ -28,9 +28,7 @@ def engine():
 
 @pytest.fixture(scope="function")
 def db_session(engine):
-    SessionLocal = sessionmaker(
-        bind=engine, autoflush=False, autocommit=False, future=True
-    )
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
     db = SessionLocal()
     try:
         yield db
