@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # AWS
     AWS_REGION: str = "us-east-1"
-    S3_BUCKET: str
+    S3_BUCKET: str = "dummy-bucket"
 
     # Others
     PROJECT_SIZE_LIMIT_BYTES: int = 10 * 1024 * 1024  # default 10 MB
