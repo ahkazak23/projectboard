@@ -1,4 +1,9 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.db.models.user import User
+    from app.db.models.project_access import ProjectAccess
+    from app.db.models.document import Document
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, Text, func

@@ -1,7 +1,10 @@
 from __future__ import annotations
-
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.db.models.project import Project
+    from app.db.models.user import User
 import enum
-from sqlalchemy import Enum as SAEnum, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import Enum as SAEnum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base

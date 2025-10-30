@@ -1,7 +1,7 @@
-from .project import Project as Project
-from .project_access import ProjectAccess as ProjectAccess
-from .project_access import ProjectRole as ProjectRole
+from .project import Project
+from .project_access import ProjectAccess
+from .project_access import ProjectRole
 from .user import User as User
-from .document import Document as Document
+from .document import Document
 
 __all__ = ["User", "Project", "ProjectAccess", "Document","ProjectRole"]

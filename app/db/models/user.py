@@ -1,5 +1,8 @@
 from __future__ import annotations
-
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.db.models.project import Project
+    from app.db.models.project_access import ProjectAccess
 from sqlalchemy import String, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 

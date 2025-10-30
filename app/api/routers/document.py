@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
-from uuid import uuid4
 
 from fastapi.params import Depends
 from sqlalchemy.orm import Session
 from starlette import status
 
 from app.core.deps import get_current_user
-from app.core.storage_s3 import ping_bucket, put_text, delete_object
+from app.core.storage_s3 import ping_bucket
 from app.db.models import User
 from app.db.session import get_db
 from app.schemas.document import DocumentOut
