@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import re
+from datetime import datetime
 from typing import BinaryIO, Optional
 from uuid import uuid4
 
@@ -51,14 +52,12 @@ def upload_document(
     safe = _sanitize_filename(file.filename or "file")
     key = f"projects/{project_id}/{uuid4()}-{safe}"
 
-    #  S3 upload
     try:
         buf: BinaryIO = io.BytesIO(blob)
         put_file(key, buf, ctype, metadata={"original": file.filename or ""})
     except Exception:
         raise
 
-    # DB upload
     try:
         with db.begin():
             doc = Document(
@@ -82,27 +81,6 @@ def upload_document(
         raise db_err
 
 
-
-def delete_document(
-    db: Session,
-    *,
-    user_id: int,
-    project_id: int,
-    doc_id: int,
-) -> None:
-    doc = _get_doc_or_404(db, project_id, doc_id)
-    proj = _get_project_or_404(db, project_id)
-    _ensure_owner(user_id, proj)
-
-    delete_file(doc.s3_key)
-
-    try:
-        with db.begin():
-            _decrement_total_size(proj, doc.size_bytes)
-            db.delete(doc)
-    except Exception:
-        raise
-
 def list_documents(
     db: Session,
     *,
@@ -112,12 +90,11 @@ def list_documents(
     page_size: int = 50,
     q: Optional[str] = None,
 ) -> dict:
-
     _ensure_access(db, user_id, project_id)
 
-    # Guards
     page = max(1, page or 1)
     page_size = max(1, min(page_size or 50, 200))
+
     qry = db.query(Document).filter(Document.project_id == project_id)
     cnt = db.query(func.count(Document.id)).filter(Document.project_id == project_id)
 
@@ -138,22 +115,115 @@ def list_documents(
     }
 
 
-def get_document_download_link(
+def get_document_download_link_by_id(
     db: Session,
     *,
     user_id: int,
-    project_id: int,
     doc_id: int,
     ttl: int = 600,
 ) -> dict:
-    _ensure_access(db, user_id, project_id)
+    doc = db.get(Document, doc_id)
+    if not doc:
+        raise ValueError("DOC_NOT_FOUND")
 
-    doc = _get_doc_or_404(db, project_id, doc_id)
+    _ensure_access(db, user_id, doc.project_id)
 
     url = presigned_download_url(key=doc.s3_key, ttl=ttl)
     expires_in = min(max(ttl, 1), 3600)
     return {"url": url, "expires_in": expires_in}
 
+
+def replace_document(
+    db: Session,
+    *,
+    user_id: int,
+    doc_id: int,
+    file: UploadFile,
+) -> Document:
+    doc = db.get(Document, doc_id)
+    if not doc:
+        raise ValueError("DOC_NOT_FOUND")
+    proj = _get_project_or_404(db, doc.project_id)
+
+    _ensure_access(db, user_id, proj.id)
+
+    ctype = (file.content_type or "").lower()
+    if ctype not in ALLOWED_MIME:
+        raise ValueError("DOC_UNSUPPORTED_TYPE")
+
+    blob = _read_limited(file, MAX_UPLOAD_BYTES)
+    new_size = len(blob)
+    old_size = doc.size_bytes or 0
+
+    limit = settings.PROJECT_SIZE_LIMIT_BYTES
+    current_total = getattr(proj, "total_size_bytes", 0) or 0
+    projected_total = current_total - old_size + new_size
+    if projected_total > limit:
+        raise ValueError("DOC_PROJECT_LIMIT")
+
+    safe = _sanitize_filename(file.filename or "file")
+    new_key = f"projects/{proj.id}/{uuid4()}-{safe}"
+    old_key = doc.s3_key
+
+    try:
+        buf: BinaryIO = io.BytesIO(blob)
+        put_file(new_key, buf, ctype, metadata={"original": file.filename or ""})
+    except Exception:
+        raise
+
+    try:
+        txn_ctx = db.begin_nested() if db.in_transaction() else db.begin()
+        with txn_ctx:
+            doc.s3_key = new_key
+            doc.filename = file.filename or safe
+            doc.size_bytes = new_size
+            doc.uploaded_by = user_id
+            doc.uploaded_at = datetime.utcnow()
+
+            if hasattr(Project, "total_size_bytes"):
+                proj.total_size_bytes = max(projected_total, 0)
+
+        if old_key and old_key != new_key:
+            try:
+                delete_file(old_key)
+            except Exception:
+                pass
+
+        db.refresh(doc)
+        return doc
+
+    except Exception as db_err:
+        try:
+            delete_file(new_key)
+        except Exception:
+            pass
+        raise db_err
+
+
+def delete_document_by_id(
+    db: Session,
+    *,
+    user_id: int,
+    doc_id: int,
+) -> None:
+    doc = db.get(Document, doc_id)
+    if not doc:
+        raise ValueError("DOC_NOT_FOUND")
+
+    proj = _get_project_or_404(db, doc.project_id)
+    _ensure_owner(user_id, proj)
+
+    try:
+        delete_file(doc.s3_key)
+    except Exception:
+        raise
+
+    try:
+        with db.begin():
+            _decrement_total_size(proj, doc.size_bytes)
+            db.delete(doc)
+    except Exception:
+        raise
 
 
 # Private Helpers

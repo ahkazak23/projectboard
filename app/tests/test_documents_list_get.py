@@ -10,7 +10,7 @@ from app.db.models.document import Document
 from app.services import document as doc_svc
 
 
-# ---------- helpers ----------
+# helpers
 def _mk_project(db, owner_id: int, name="p1", desc="d1") -> Project:
     p = Project(name=name, description=desc, owner_id=owner_id)
     db.add(p)
@@ -39,7 +39,7 @@ def _mk_doc(db, project_id: int, filename: str, size: int = 10, uploaded_by: int
     return d
 
 
-# ---------- tests: list ----------
+# tests: list
 def test_list_documents_owner_sees_all(db_session, user_factory):
     owner = user_factory("owner1")
     p = _mk_project(db_session, owner.id)
@@ -88,7 +88,6 @@ def test_list_documents_pagination_and_search(db_session, user_factory):
     _mk_doc(db_session, p.id, "report-q2.pdf")
     _mk_doc(db_session, p.id, "notes.txt")
 
-    # search: only "report-*" should match
     out = doc_svc.list_documents(
         db_session, user_id=owner.id, project_id=p.id, page=1, page_size=1, q="report"
     )
@@ -102,13 +101,12 @@ def test_list_documents_pagination_and_search(db_session, user_factory):
     assert out["items"][0].id != out2["items"][0].id
 
 
-# ---------- tests: presigned link ----------
+# tests: presigned link
 def test_presigned_link_happy_path(db_session, user_factory, monkeypatch):
     owner = user_factory("owner5")
     p = _mk_project(db_session, owner.id)
     d = _mk_doc(db_session, p.id, "file.pdf")
 
-    # monkeypatch the presign helper to avoid AWS calls
     def fake_presign(*, key: str, ttl: int = 600, **kwargs) -> str:
         assert key == d.s3_key
         assert 1 <= ttl <= 3600
@@ -116,26 +114,25 @@ def test_presigned_link_happy_path(db_session, user_factory, monkeypatch):
 
     monkeypatch.setattr(doc_svc, "presigned_download_url", fake_presign, raising=True)
 
-    out = doc_svc.get_document_download_link(
-        db_session, user_id=owner.id, project_id=p.id, doc_id=d.id, ttl=700
+    out = doc_svc.get_document_download_link_by_id(
+        db_session, user_id=owner.id, doc_id=d.id, ttl=700
     )
     assert "url" in out and out["url"].startswith("https://example.com/")
-    # clamped to <= 3600 and >= 1; we asked 700 so it should be 700
     assert out["expires_in"] == 700
+
 
 
 def test_presigned_link_wrong_project_404(db_session, user_factory, monkeypatch):
     owner = user_factory("owner6")
     other = user_factory("owner6b")
-    p1 = _mk_project(db_session, owner.id)
     p2 = _mk_project(db_session, other.id)
     d = _mk_doc(db_session, p2.id, "other.pdf")
 
-    # user has access to p1 only; asking a doc from p1 with id from p2 should 404
-    with pytest.raises(ValueError):  # DOC_NOT_FOUND
-        doc_svc.get_document_download_link(
-            db_session, user_id=owner.id, project_id=p1.id, doc_id=d.id
+    with pytest.raises(ValueError):
+        doc_svc.get_document_download_link_by_id(
+            db_session, user_id=owner.id, doc_id=d.id
         )
+
 
 
 def test_presigned_link_forbidden_non_member(db_session, user_factory):
@@ -144,7 +141,7 @@ def test_presigned_link_forbidden_non_member(db_session, user_factory):
     p = _mk_project(db_session, owner.id)
     d = _mk_doc(db_session, p.id, "private.pdf")
 
-    with pytest.raises(ValueError):  # DOC_NO_ACCESS via _ensure_access
-        doc_svc.get_document_download_link(
-            db_session, user_id=alien.id, project_id=p.id, doc_id=d.id
+    with pytest.raises(ValueError):
+        doc_svc.get_document_download_link_by_id(
+            db_session, user_id=alien.id, doc_id=d.id
         )
