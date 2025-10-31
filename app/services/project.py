@@ -7,9 +7,7 @@ from app.schemas import ProjectIn, ProjectUpdate
 
 
 def create_project(db: Session, current_user: User, data: ProjectIn) -> Project:
-    proj = Project(
-        name=data.name, description=data.description, owner_id=current_user.id
-    )
+    proj = Project(name=data.name, description=data.description, owner_id=current_user.id)
     db.add(proj)
     db.flush()
 
@@ -64,9 +62,7 @@ def delete_project(db: Session, current_user: User, project_id: int) -> None:
     return None
 
 
-def invite_user(
-    db: Session, owner_user: User, project_id: int, target_login: str
-) -> None:
+def invite_user(db: Session, owner_user: User, project_id: int, target_login: str) -> None:
     proj = _get_project_or_404(db, project_id)
     _ensure_owner(owner_user.id, proj)
 
@@ -114,8 +110,7 @@ def _ensure_owner(user_id: int, project: Project) -> None:
 def _is_member(db: Session, user_id: int, project_id: int) -> bool:
     stmt = select(
         exists().where(
-            (ProjectAccess.user_id == user_id)
-            & (ProjectAccess.project_id == project_id)
+            (ProjectAccess.user_id == user_id) & (ProjectAccess.project_id == project_id)
         )
     )
     result = db.scalar(stmt)

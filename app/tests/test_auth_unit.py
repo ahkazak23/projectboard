@@ -12,15 +12,16 @@ def test_register_creates_user_and_normalizes_login(db_session):
     assert u.login == "alice"
 
 
-def test_login_success_returns_token_and_expires_in(db_session, user_factory):
-    user_factory("owner1", "secret")
+def test_login_success_returns_token_and_expires_in(db_session):
+    # register exact login, then log in with different case to verify normalization
+    auth_svc.register(db_session, login="owner1", password="secret")
     token, expires_in = auth_svc.login(db_session, login="OWNER1", password="secret")
     assert isinstance(token, str) and len(token) > 10
     assert isinstance(expires_in, int) and expires_in > 0
 
 
-def test_login_wrong_password_raises_autherror(db_session, user_factory):
-    user_factory("alice_wrongcase", "secret")
+def test_login_wrong_password_raises_autherror(db_session):
+    auth_svc.register(db_session, login="alice_wrongcase", password="secret")
     with pytest.raises(AuthError):
         auth_svc.login(db_session, login="alice_wrongcase", password="wrong")
 

@@ -9,11 +9,7 @@ def test_create_project_sets_owner_and_access(db_session, user_factory):
     p = svc.create_project(db_session, owner, ProjectIn(**data))
     assert p.id is not None
     assert p.owner_id == owner.id
-    link = (
-        db_session.query(ProjectAccess)
-        .filter_by(project_id=p.id, user_id=owner.id)
-        .one()
-    )
+    link = db_session.query(ProjectAccess).filter_by(project_id=p.id, user_id=owner.id).one()
     assert link.role == ProjectRole.owner
 
 
@@ -44,10 +40,6 @@ def test_invite_user_adds_participant(db_session, user_factory):
     data = {"name": "Demo", "description": ""}
     p = svc.create_project(db_session, owner, ProjectIn(**data))
     svc.invite_user(db_session, owner, p.id, invited.login)
-    links = (
-        db_session.query(ProjectAccess)
-        .filter_by(user_id=invited.id, project_id=p.id)
-        .all()
-    )
+    links = db_session.query(ProjectAccess).filter_by(user_id=invited.id, project_id=p.id).all()
     assert len(links) == 1
     assert links[0].role == ProjectRole.participant

@@ -5,9 +5,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.errors import AuthError, UserExistsError
-from app.core.security import (ACCESS_TOKEN_EXPIRE_MINUTES,
-                               create_access_token, hash_password,
-                               verify_password)
+from app.core.security import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    create_access_token,
+    hash_password,
+    verify_password,
+)
 from app.db.models import User
 
 
@@ -18,9 +21,7 @@ def _normalize_login(login: str) -> str:
 def register(db: Session, *, login: str, password: str) -> User:
     norm_login = _normalize_login(login)
 
-    exists = db.execute(
-        select(User).where(User.login == norm_login)
-    ).scalar_one_or_none()
+    exists = db.execute(select(User).where(User.login == norm_login)).scalar_one_or_none()
     if exists:
         raise UserExistsError("User already exists")
 

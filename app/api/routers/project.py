@@ -27,9 +27,7 @@ def create_project_endpoint(
     return proj
 
 
-@router.get(
-    "/projects", response_model=list[ProjectOut], summary="List accessible projects"
-)
+@router.get("/projects", response_model=list[ProjectOut], summary="List accessible projects")
 def list_projects_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
