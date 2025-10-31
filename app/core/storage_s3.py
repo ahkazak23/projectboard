@@ -33,19 +33,6 @@ def ping_bucket() -> bool:
         return False
 
 
-def put_text(key: str, body: str) -> None:
-    s3 = get_s3_client()
-    try:
-        s3.put_object(
-            Bucket=settings.S3_BUCKET,
-            Key=key,
-            Body=body.encode("utf-8"),
-            ContentType="text/plain; charset=utf-8",
-        )
-    except (ClientError, BotoCoreError) as e:
-        logger.exception("S3 put_text failed (key=%s): %s", key, e)
-        raise
-
 
 def put_file(key: str, fileobj, content_type: str, metadata: dict | None = None) -> str | None:
     s3 = get_s3_client()
@@ -75,4 +62,26 @@ def delete_file(key: str) -> None:
             return
         raise ValueError("DOC_S3_ERROR")
     except BotoCoreError:
+        raise ValueError("DOC_S3_ERROR")
+
+def presigned_download_url(*, key: str, ttl: int = 600) -> str:
+    if ttl < 1:
+        raise ValueError("DOC_BAD_TTL")
+    if ttl > 3600:
+        ttl = 3600  #  max 1 hour
+
+    bucket = getattr(settings, "S3_BUCKET", None)
+    if not bucket:
+        logger.error("presigned_download_url failed: S3_BUCKET not configured")
+        raise ValueError("DOC_S3_ERROR")
+
+    s3 = get_s3_client()
+    try:
+        return s3.generate_presigned_url(
+            ClientMethod="get_object",
+            Params={"Bucket": bucket, "Key": key},
+            ExpiresIn=ttl,
+        )
+    except (ClientError, BotoCoreError) as e:
+        logger.exception("S3 presign failed (key=%s): %s", key, e)
         raise ValueError("DOC_S3_ERROR")

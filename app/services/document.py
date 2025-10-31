@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import io
 import re
-from typing import BinaryIO
+from typing import BinaryIO, Optional
 from uuid import uuid4
 
 from fastapi import UploadFile
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.storage_s3 import delete_file, put_file
+from app.core.storage_s3 import delete_file, put_file, presigned_download_url
 from app.db.models.document import Document
 from app.db.models.project import Project
 from app.db.models.project_access import ProjectAccess
@@ -33,7 +34,6 @@ def upload_document(
     project_id: int,
     file: UploadFile,
 ) -> Document:
-
     proj = _ensure_access(db, user_id, project_id)
 
     ctype = (file.content_type or "").lower()
@@ -45,34 +45,42 @@ def upload_document(
 
     limit = settings.PROJECT_SIZE_LIMIT_BYTES
     current = getattr(proj, "total_size_bytes", 0) or 0
-
     if current + size > limit:
         raise ValueError("DOC_PROJECT_LIMIT")
 
     safe = _sanitize_filename(file.filename or "file")
     key = f"projects/{project_id}/{uuid4()}-{safe}"
 
-    # S3 upload
-    buf: BinaryIO = io.BytesIO(blob)
-    put_file(key, buf, ctype, metadata={"original": file.filename or ""})
+    #  S3 upload
+    try:
+        buf: BinaryIO = io.BytesIO(blob)
+        put_file(key, buf, ctype, metadata={"original": file.filename or ""})
+    except Exception:
+        raise
 
-    # DB save
-    doc = Document(
-        project_id=project_id,
-        filename=file.filename or safe,
-        s3_key=key,
-        size_bytes=size,
-        uploaded_by=user_id,
-    )
-    db.add(doc)
+    # DB upload
+    try:
+        with db.begin():
+            doc = Document(
+                project_id=project_id,
+                filename=file.filename or safe,
+                s3_key=key,
+                size_bytes=size,
+                uploaded_by=user_id,
+            )
+            db.add(doc)
 
-    if hasattr(Project, "total_size_bytes"):
-        current = getattr(proj, "total_size_bytes", 0) or 0
-        setattr(proj, "total_size_bytes", current + size)
+            if hasattr(Project, "total_size_bytes"):
+                current = getattr(proj, "total_size_bytes", 0) or 0
+                setattr(proj, "total_size_bytes", current + size)
 
-    db.commit()
-    db.refresh(doc)
-    return doc
+        db.refresh(doc)
+        return doc
+
+    except Exception as db_err:
+        delete_file(key)
+        raise db_err
+
 
 
 def delete_document(
@@ -86,15 +94,66 @@ def delete_document(
     proj = _get_project_or_404(db, project_id)
     _ensure_owner(user_id, proj)
 
-    # S3 delete
     delete_file(doc.s3_key)
 
-    # total_size_bytes decrement (never negative)
-    _decrement_total_size(proj, doc.size_bytes)
+    try:
+        with db.begin():
+            _decrement_total_size(proj, doc.size_bytes)
+            db.delete(doc)
+    except Exception:
+        raise
 
-    # DB delete
-    db.delete(doc)
-    db.commit()
+def list_documents(
+    db: Session,
+    *,
+    user_id: int,
+    project_id: int,
+    page: int = 1,
+    page_size: int = 50,
+    q: Optional[str] = None,
+) -> dict:
+
+    _ensure_access(db, user_id, project_id)
+
+    # Guards
+    page = max(1, page or 1)
+    page_size = max(1, min(page_size or 50, 200))
+    qry = db.query(Document).filter(Document.project_id == project_id)
+    cnt = db.query(func.count(Document.id)).filter(Document.project_id == project_id)
+
+    if q:
+        like = f"%{q}%"
+        qry = qry.filter(Document.filename.ilike(like))
+        cnt = cnt.filter(Document.filename.ilike(like))
+
+    qry = qry.order_by(Document.uploaded_at.desc())
+    items = qry.offset((page - 1) * page_size).limit(page_size).all()
+    total = cnt.scalar() or 0
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
+
+
+def get_document_download_link(
+    db: Session,
+    *,
+    user_id: int,
+    project_id: int,
+    doc_id: int,
+    ttl: int = 600,
+) -> dict:
+    _ensure_access(db, user_id, project_id)
+
+    doc = _get_doc_or_404(db, project_id, doc_id)
+
+    url = presigned_download_url(key=doc.s3_key, ttl=ttl)
+    expires_in = min(max(ttl, 1), 3600)
+    return {"url": url, "expires_in": expires_in}
+
 
 
 # Private Helpers

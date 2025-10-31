@@ -58,7 +58,9 @@ def value_error_handler(request: Request, exc: ValueError):
             content={"detail": "Project size limit exceeded"},
         )
     if msg == "DOC_NOT_FOUND":
-        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"detail": "Document not found"})
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND, content={"detail": "Document not found"}
+        )
     if msg.startswith("DOC_S3_ERROR"):
         return JSONResponse(
             status_code=status.HTTP_502_BAD_GATEWAY, content={"detail": "Upstream S3 error"}

@@ -1,5 +1,6 @@
 import os
 import tempfile
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import create_engine
@@ -39,9 +40,10 @@ def db_session(engine):
 @pytest.fixture
 def user_factory(db_session):
     def _create(login: str, password: str = "pass"):
-        return auth_svc.register(db_session, login=login, password=password)
-
+        unique_login = f"{login}_{uuid4().hex[:6]}"
+        return auth_svc.register(db_session, login=unique_login, password=password)
     return _create
+
 
 
 @pytest.fixture
