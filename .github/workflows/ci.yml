@@ -3,7 +3,7 @@ name: ci
 on:
   push:
     branches:
-      - sprint-3
+      - sprint-4
       - main
   pull_request:
     branches:
