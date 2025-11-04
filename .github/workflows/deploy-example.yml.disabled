@@ -15,7 +15,7 @@ on:
     branches:
       - main
   # Uncomment to enable manual workflow dispatch
-  # workflow_dispatch:
+  # workflow_dispatch: {}
 
 # IMPORTANT: Required for OIDC authentication to work
 permissions:

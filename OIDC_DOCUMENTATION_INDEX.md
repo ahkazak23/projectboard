@@ -2,7 +2,7 @@
 
 ## 🎯 Quick Answer
 
-**Question**: "Do I need to do some configs on github side if i want to oids aws?"
+**Question**: "Do I need to do some configs on the GitHub side if I want to use OIDC with AWS?"
 
 **Answer**: **NO** - You do NOT need to configure anything in GitHub repository settings for OIDC to work. All OIDC configuration is done on the AWS side (IAM Identity Provider and IAM Role).
 

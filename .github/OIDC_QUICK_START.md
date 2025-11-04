@@ -1,6 +1,6 @@
 # AWS OIDC Quick Start Guide
 
-**Quick answer**: "Do I need to configure anything on GitHub side for OIDC with AWS?"
+**Quick answer**: "Do I need to configure anything on the GitHub side for OIDC with AWS?"
 
 **NO** - All OIDC configuration is done in AWS IAM. You only need to update your workflow file.
 

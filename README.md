@@ -108,6 +108,8 @@ For GitHub Actions workflows, use OpenID Connect (OIDC) instead of long-lived cr
 
 **📖 See [AWS_OIDC_SETUP.md](./AWS_OIDC_SETUP.md) for detailed configuration guide**
 
+**Quick answer**: Do you need to configure anything on the GitHub side for OIDC? **NO** - All configuration is done in AWS IAM.
+
 Benefits of OIDC:
 - ✅ No credential rotation needed
 - ✅ Short-lived, auto-expiring tokens

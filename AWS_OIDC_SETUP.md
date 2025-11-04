@@ -38,7 +38,7 @@ This guide explains how to configure GitHub Actions to authenticate with AWS usi
      --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
    ```
 
-   > **Note**: The thumbprint `6938fd4d98bab03faadb97b34396831e3780aea1` is GitHub's current OIDC thumbprint. Verify the latest thumbprint in [GitHub's documentation](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services).
+   > **Note**: The thumbprint `6938fd4d98bab03faadb97b34396831e3780aea1` is GitHub's OIDC thumbprint (verified November 2025). AWS can also automatically retrieve the thumbprint when you click "Get thumbprint" in the console. Always verify the current thumbprint in [GitHub's official documentation](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services) before using.
 
 ### Step 2: Create an IAM Role for GitHub Actions
 

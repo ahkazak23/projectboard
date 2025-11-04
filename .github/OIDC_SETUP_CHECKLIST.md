@@ -122,7 +122,7 @@ permissions:
 - name: Configure AWS Credentials
   uses: aws-actions/configure-aws-credentials@v4
   with:
-    role-to-assume: arn:aws:iam::ACCOUNT_ID:role/GitHubActionsRole-ProjectBoard
+    role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/GitHubActionsRole-ProjectBoard
     aws-region: us-east-1
 ```
 
