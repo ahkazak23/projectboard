@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URL: Optional[str] = None
 
     # JWT / Auth
-    JWT_SECRET: str
+    JWT_SECRET: Optional[str] = "Change_Me"
     JWT_ALG: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
