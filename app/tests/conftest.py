@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.db.session import Base
+from app.db.models.base import Base
 from app.services import auth as auth_svc
 
 

@@ -1,0 +1,123 @@
+name: CI/CD - ProjectBoard
+
+on:
+  push:
+    branches: [ main, sprint-* ]
+  pull_request:
+    branches: [ main, sprint-* ]
+
+env:
+  AWS_REGION: us-east-1
+  ACCOUNT_ID: "381293813799"
+  ECR_REPOSITORY: projectboard-api
+  CLUSTER: projectboard-cluster
+  SERVICE: projectboard-api-service
+  CONTAINER_NAME: projectboard-api
+
+jobs:
+  build_and_push:
+    name: CI • Lint • Test • (Build & Push on push)
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      image_uri: ${{ steps.ecr.outputs.image_uri }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install deps (with dev)
+        run: poetry install --no-root --with dev
+
+      - name: Lint
+        run: |
+          poetry run ruff check . --fix
+          poetry run black .
+          poetry run isort .
+
+      - name: Tests
+        run: poetry run pytest -q --cov=app
+
+      - name: Configure AWS (OIDC)
+        if: ${{ github.event_name == 'push' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::381293813799:role/github-actions-projectboard-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Who am I?
+        if: ${{ github.event_name == 'push' }}
+        run: aws sts get-caller-identity
+
+      - name: Login to ECR
+        if: ${{ github.event_name == 'push' }}
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & Push image
+        if: ${{ github.event_name == 'push' }}
+        id: ecr
+        shell: bash
+        run: |
+          IMAGE="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${GITHUB_SHA}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "image_uri=$IMAGE" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: CD • Render TD • ECS Deploy
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    needs: build_and_push
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::381293813799:role/github-actions-projectboard-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Who am I?
+        run: aws sts get-caller-identity
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Export current Task Definition
+        shell: bash
+        run: |
+          CUR_TD_ARN=$(aws ecs describe-services --cluster "${{ env.CLUSTER }}" --services "${{ env.SERVICE }}" --query 'services[0].taskDefinition' --output text)
+          aws ecs describe-task-definition --task-definition "$CUR_TD_ARN" --query 'taskDefinition' \
+          | jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)' \
+          > base-taskdef.json
+
+      - name: Render new Task Definition (swap image)
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: base-taskdef.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ needs.build_and_push.outputs.image_uri }}
+
+      - name: Deploy to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          service: ${{ env.SERVICE }}
+          cluster: ${{ env.CLUSTER }}
+          wait-for-service-stability: true
