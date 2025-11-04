@@ -35,7 +35,8 @@ dev = [
     "ruff (>=0.14.2,<0.15.0)",
     "black (>=25.9.0,<26.0.0)",
     "isort (>=7.0.0,<8.0.0)",
-    "deptry (>=0.23.1,<0.24.0)"
+    "deptry (>=0.23.1,<0.24.0)",
+    "pytest-cov (>=7.0.0,<8.0.0)"
 ]
 [tool.pytest.ini_options]
 pythonpath = ["."]
