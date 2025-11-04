@@ -1,0 +1,140 @@
+# Example GitHub Actions workflow demonstrating AWS OIDC authentication
+# 
+# This file is disabled by default (.disabled extension)
+# To use it:
+# 1. Follow the setup guide in AWS_OIDC_SETUP.md
+# 2. Configure your AWS IAM role
+# 3. Add AWS_ROLE_ARN to GitHub Secrets
+# 4. Rename this file to deploy-example.yml (remove .disabled)
+# 5. Customize the workflow for your deployment needs
+
+name: Deploy Example with OIDC
+
+on:
+  push:
+    branches:
+      - main
+  # Uncomment to enable manual workflow dispatch
+  # workflow_dispatch:
+
+# IMPORTANT: Required for OIDC authentication to work
+permissions:
+  id-token: write   # Required to request OIDC token
+  contents: read    # Required to checkout code
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    # Optional: Only run on main branch
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # Option 1: Use role ARN from GitHub Secrets (recommended)
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          
+          # Option 2: Hardcode role ARN (not recommended for production)
+          # role-to-assume: arn:aws:iam::123456789012:role/GitHubActionsRole-ProjectBoard
+          
+          aws-region: us-east-1
+          
+          # Optional: Custom session name for better audit trails
+          role-session-name: GitHubActions-Deploy-${{ github.run_number }}
+          
+          # Optional: Session duration (in seconds, default 3600, max depends on role config)
+          # role-duration-seconds: 3600
+
+      - name: Verify AWS Identity
+        run: |
+          echo "Verifying AWS credentials..."
+          aws sts get-caller-identity
+
+      - name: Test S3 Access
+        run: |
+          echo "Testing S3 bucket access..."
+          # Replace with your actual bucket name
+          aws s3 ls s3://projectboard-docs-381293813799-dev/ || echo "Bucket not found or no access"
+
+      # Add your deployment steps below
+      # Examples:
+      
+      # - name: Deploy to ECS
+      #   run: |
+      #     aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
+      
+      # - name: Upload to S3
+      #   run: |
+      #     aws s3 sync ./dist s3://my-bucket/
+      
+      # - name: Invalidate CloudFront
+      #   run: |
+      #     aws cloudfront create-invalidation --distribution-id EDFDVBD6EXAMPLE --paths "/*"
+      
+      # - name: Run database migrations
+      #   run: |
+      #     # Your migration commands here
+      #     echo "Running migrations..."
+
+  # Example: Deploy to different environments
+  deploy-staging:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS for Staging
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_STAGING }}
+          aws-region: us-east-1
+          role-session-name: GitHubActions-Staging-${{ github.run_number }}
+      
+      - name: Deploy to Staging
+        run: |
+          echo "Deploying to staging environment..."
+          # Your staging deployment commands
+
+  # Example: Deploy to production with manual approval
+  deploy-production:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    # Use GitHub Environments for manual approval
+    environment:
+      name: production
+      url: https://projectboard.example.com
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS for Production
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PRODUCTION }}
+          aws-region: us-east-1
+          role-session-name: GitHubActions-Production-${{ github.run_number }}
+      
+      - name: Deploy to Production
+        run: |
+          echo "Deploying to production environment..."
+          # Your production deployment commands
+      
+      - name: Notify deployment
+        run: |
+          echo "Production deployment completed successfully"
+          # Add notification logic (Slack, Discord, etc.)
