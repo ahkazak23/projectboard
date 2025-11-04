@@ -103,8 +103,18 @@ jobs:
         run: |
           CUR_TD_ARN=$(aws ecs describe-services --cluster "${{ env.CLUSTER }}" --services "${{ env.SERVICE }}" --query 'services[0].taskDefinition' --output text)
           aws ecs describe-task-definition --task-definition "$CUR_TD_ARN" --query 'taskDefinition' \
-          | jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)' \
-          > base-taskdef.json
+          | jq 'del(
+              .taskDefinitionArn,
+              .revision,
+              .status,
+              .requiresAttributes,
+              .compatibilities,
+              .registeredAt,
+              .registeredBy,
+              .deregisteredAt,
+              .deregisteredBy,
+              .enableFaultInjection
+            )' > base-taskdef.json
 
       - name: Render new Task Definition (swap image)
         id: render
