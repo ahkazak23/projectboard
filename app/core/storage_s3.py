@@ -33,7 +33,6 @@ def ping_bucket() -> bool:
         return False
 
 
-
 def put_file(key: str, fileobj, content_type: str, metadata: dict | None = None) -> str | None:
     s3 = get_s3_client()
     extra = {"ContentType": content_type}
@@ -63,6 +62,7 @@ def delete_file(key: str) -> None:
         raise ValueError("DOC_S3_ERROR")
     except BotoCoreError:
         raise ValueError("DOC_S3_ERROR")
+
 
 def presigned_download_url(*, key: str, ttl: int = 600) -> str:
     if ttl < 1:

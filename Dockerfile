@@ -1,22 +1,16 @@
-# ---- Base image ----
 FROM python:3.10-slim
-
-# metadata
-LABEL authors="ahkazak23"
-
-# ---- Working dir ----
 WORKDIR /app
 
-# ---- Copy project files ----
+# bağımlılıklar
 COPY pyproject.toml poetry.lock* ./
 RUN pip install --no-cache-dir poetry \
-    && poetry config virtualenvs.create false \
-    && poetry install --no-root --no-interaction --no-ansi
+ && poetry config virtualenvs.create false \
+ && poetry install --no-root --no-interaction --no-ansi
 
-# ---- Copy source code ----
+# uygulama
 COPY app ./app
+COPY alembic.ini ./
 
-# ---- Expose port ----
 EXPOSE 8000
 
 # ---- Run server ----

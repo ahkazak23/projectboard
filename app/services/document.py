@@ -11,7 +11,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.storage_s3 import delete_file, put_file, presigned_download_url
+from app.core.storage_s3 import delete_file, presigned_download_url, put_file
 from app.db.models.document import Document
 from app.db.models.project import Project
 from app.db.models.project_access import ProjectAccess
@@ -59,7 +59,8 @@ def upload_document(
         raise
 
     try:
-        with db.begin():
+        txn = db.begin_nested() if db.in_transaction() else db.begin()
+        with txn:
             doc = Document(
                 project_id=project_id,
                 filename=file.filename or safe,
@@ -73,6 +74,8 @@ def upload_document(
                 current = getattr(proj, "total_size_bytes", 0) or 0
                 setattr(proj, "total_size_bytes", current + size)
 
+        db.refresh(doc)
+        db.flush()
         db.refresh(doc)
         return doc
 
@@ -219,7 +222,8 @@ def delete_document_by_id(
         raise
 
     try:
-        with db.begin():
+        txn = db.begin_nested() if db.in_transaction() else db.begin()
+        with txn:
             _decrement_total_size(proj, doc.size_bytes)
             db.delete(doc)
     except Exception:
