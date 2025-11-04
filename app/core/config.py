@@ -1,14 +1,17 @@
+from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     # Database
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
-    DB_HOST: str
-    DB_PORT: int
-    DATABASE_URL: str
+    POSTGRES_USER: Optional[str] = None
+    POSTGRES_PASSWORD: Optional[str] = None
+    POSTGRES_DB: Optional[str] = None
+    DB_HOST: Optional[str] = None
+    DB_PORT: Optional[int] = None
+    DATABASE_URL: Optional[str] = None
+    SQLALCHEMY_DATABASE_URL: Optional[str] = None
 
     # JWT / Auth
     JWT_SECRET: str
