@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Annotated, Optional, List
+from typing import Annotated, List, Optional
 
-from pydantic import BaseModel, ConfigDict, StringConstraints, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 Filename255 = Annotated[str, StringConstraints(min_length=1, max_length=255)]
 S3Key512 = Annotated[str, StringConstraints(min_length=1, max_length=512)]

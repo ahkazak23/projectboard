@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, func, BigInteger
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.models.base import Base

@@ -42,8 +42,8 @@ def user_factory(db_session):
     def _create(login: str, password: str = "pass"):
         unique_login = f"{login}_{uuid4().hex[:6]}"
         return auth_svc.register(db_session, login=unique_login, password=password)
-    return _create
 
+    return _create
 
 
 @pytest.fixture

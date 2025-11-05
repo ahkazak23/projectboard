@@ -23,3 +23,10 @@ build/
 .pytest_cache/
 .coverage
 test.db
+
+# ephemeral
+td.json
+td-new.json
+containers.json
+containers-new.json
+tmp.txt

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, Query, Path, Depends
+from fastapi import APIRouter, Depends, File, HTTPException, Path, Query, UploadFile
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -9,20 +9,21 @@ from app.core.storage_s3 import ping_bucket
 from app.db.models import User
 from app.db.session import get_db
 from app.schemas.document import (
-    DocumentOut,
-    DocumentListOut,
     DocumentDownloadLinkOut,
+    DocumentListOut,
+    DocumentOut,
 )
 from app.services.document import (
-    upload_document,
-    list_documents,
-    get_document_download_link_by_id,
-    replace_document,
     delete_document_by_id,
+    get_document_download_link_by_id,
+    list_documents,
+    replace_document,
+    upload_document,
 )
 
 proj_router = APIRouter(prefix="/projects", tags=["documents"])
 doc_router = APIRouter(prefix="/document", tags=["documents"])
+
 
 # proj_router
 @proj_router.post(
@@ -132,6 +133,6 @@ def delete_document_by_id_endpoint(
 
 # Dev ping
 @doc_router.get("/ping")
-def s3_ping():
+def s3_ping(current_user: User = Depends(get_current_user)):
     ok = ping_bucket()
     return {"ok": ok}
