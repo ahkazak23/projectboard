@@ -59,29 +59,29 @@ def upload_document(
         raise
 
     try:
-        txn = db.begin_nested() if db.in_transaction() else db.begin()
-        with txn:
-            doc = Document(
-                project_id=project_id,
-                filename=file.filename or safe,
-                s3_key=key,
-                size_bytes=size,
-                uploaded_by=user_id,
-            )
-            db.add(doc)
+        doc = Document(
+            project_id=project_id,
+            filename=file.filename or safe,
+            s3_key=key,
+            size_bytes=size,
+            uploaded_by=user_id,
+        )
+        db.add(doc)
 
-            if hasattr(Project, "total_size_bytes"):
-                current = getattr(proj, "total_size_bytes", 0) or 0
-                setattr(proj, "total_size_bytes", current + size)
+        if hasattr(Project, "total_size_bytes"):
+            current = getattr(proj, "total_size_bytes", 0) or 0
+            setattr(proj, "total_size_bytes", current + size)
 
-        db.refresh(doc)
         db.flush()
+        db.commit()
         db.refresh(doc)
         return doc
 
+
     except Exception as db_err:
+        db.rollback()
         delete_file(key)
-        raise db_err
+        raise
 
 
 def list_documents(
@@ -175,16 +175,17 @@ def replace_document(
         raise
 
     try:
-        txn_ctx = db.begin_nested() if db.in_transaction() else db.begin()
-        with txn_ctx:
-            doc.s3_key = new_key
-            doc.filename = file.filename or safe
-            doc.size_bytes = new_size
-            doc.uploaded_by = user_id
-            doc.uploaded_at = datetime.utcnow()
+        doc.s3_key = new_key
+        doc.filename = file.filename or safe
+        doc.size_bytes = new_size
+        doc.uploaded_by = user_id
+        doc.uploaded_at = datetime.utcnow()
 
-            if hasattr(Project, "total_size_bytes"):
-                proj.total_size_bytes = max(projected_total, 0)
+        if hasattr(Project, "total_size_bytes"):
+            proj.total_size_bytes = max(projected_total, 0)
+
+        db.flush()
+        db.commit()
 
         if old_key and old_key != new_key:
             try:
@@ -196,11 +197,12 @@ def replace_document(
         return doc
 
     except Exception as db_err:
+        db.rollback()
         try:
             delete_file(new_key)
         except Exception:
             pass
-        raise db_err
+        raise
 
 
 def delete_document_by_id(
@@ -222,11 +224,12 @@ def delete_document_by_id(
         raise
 
     try:
-        txn = db.begin_nested() if db.in_transaction() else db.begin()
-        with txn:
-            _decrement_total_size(proj, doc.size_bytes)
-            db.delete(doc)
+        _decrement_total_size(proj, doc.size_bytes)
+        db.delete(doc)
+        db.flush()
+        db.commit()
     except Exception:
+        db.rollback()
         raise
 
 
